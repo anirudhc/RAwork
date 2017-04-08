@@ -1,0 +1,309 @@
+Creator: Jed Haile <jed@grep.net>
+Current Maintainer: Rob McMillen <rvmcmil@cablespeed.com>
+                    William Metcalf <william.metcalf@gmail.com>
+                    Victor Julien <victor@nk.nl>
+
+Snort-Inline takes packets from iptables instead of libpcap. It then uses 
+new rule types to help iptables make pass or drop decisions based on
+snort rules.
+
+In order for snort_inline to work properly, you must download and compile
+the iptables code to include "make install-devel" (www.iptables.org).
+This will install the libipq library that allows snort_inline to interface 
+with iptables.  Also, you must build and install LibNet, which is available
+from www.packetfactory.net.
+
+The snort_inline FAQ can be found at http://snort-inline.com/FAQ.html.
+
+NEW RULE TYPES AND WHAT THEY DO:
+
+drop - The drop rule type will tell iptables to drop the packet and log it 
+       via usual snort means.
+reject - This just kept around for existing rules, it is just an alias to rejectsrc.
+rejectsrc - The rejectsrc rule type will tell iptables to drop the packet, log it 
+         via usual snort means, and send a TCP reset if the protocol is 
+         TCP or an icmp port unreachable if the protocol is UDP to the src ip.
+rejectdst - The rejectdst rule type will tell iptables to drop the packet, log it
+         via usual snort means, and send a TCP reset if the protocol is
+         TCP or an icmp port unreachable if the protocol is UDP to the dst ip. It
+         should be noted that if you use layer2resets this will not work as we don't
+         get the dst mac from iptables. The packet will just be dropped.
+rejectboth - The rejectboth rule type will tell iptables to drop the packet, log it
+         via usual snort means, and send a TCP reset if the protocol is
+         TCP or an icmp port unreachable if the protocol is UDP to the src and dst ip.
+         If you are configured to use layer2resets the reset will only be sent to the
+         src ip.
+sdrop - The sdrop rule type will tell iptables to drop the packet.  Nothing
+        is logged.
+
+RESETS/REJECTS: We now have two options on how to send out resets. We can still use
+a RAW socket which is the default behavior for snort_inline in which case
+we need to have an interface that has an ip assigned. If there is not an
+interface with an ip address assigned with access to the source of the packet,
+the packet will be logged and the reset packet will never make it onto the 
+network.
+
+We can also now perform resets via a physical device when using iptables.
+We take the indev name from ip_queue and use this as the interface on which
+to send resets. We no longer need a ip loaded on the bridge, and can remain
+pretty stealthy as the config layer2_resets in snort_inline.conf takes a source
+mac address which we substitue for the mac of the bridge. For example:
+
+CONFIG OPTIONS
+
+config layer2resets
+
+tells snort_inline to use layer2 rests and uses the mac address of the bridge 
+as the source mac in the packet.
+
+config layer2resets: 00:06:76:DD:5F:E3
+
+will tell snort_inline to use layer2 resets and uses the src mac of 
+00:06:76:DD:5F:E3 in the rest packet.
+
+STREAM4 OPTIONS
+
+There are two additional stream4 options:
+
+enforce_state (no args)
+    This option causes snort to drop TCP packets that are not associated with 
+    an existing TCP session, and is not a valid TCP initiator. If you enable this
+    option it is adviced to increase the timeout to something like an hour (3600).
+    IPTables even uses 5 days for this (432000).
+
+midstream_drop_alerts (no args)
+    By default, when running in inline mode, snort will silently drop any
+    packets that were picked up in midstream and would have caused an alert
+    to be generated, if not for the 'flow: established' option.  This is to
+    mitigate stick/snot type attacks when the user hasn't enabled 
+    inline_state.  If the user wants to see the alerts that are silently
+    dropped, then enable this keyword.  Note that by enabling this keyword,
+    the user has opened themselves up to stick/snot type attacks.
+
+stream4inline
+    This forces stream4 to do packet reassembly on a sliding window, what this means
+    is that we are doing reassembly in real-time, and no more of this postmortem uberpacket
+    creation alert but can't drop non-sense.  Be careful though we are performing 
+    session drops so this means that this option has to be used in conjunction with enforce_state
+    to be effective. We are pretty sure we break the replace keyword with this one, so be careful.
+
+    Stream4inline options:
+        truncate: truncates a stream instead of flushing it. Use this for the sliding window.
+        truncate_percentage: set the percentage to cut off of the stream when we truncate (default 33).
+        window_size: size in bytes of the sliding window (default 7000).
+
+    Note that the default values are quite randomly chosen, so please share your experiences.
+
+STICKYDROP
+
+Basically this preproc/detction-plugin that came from the fact that I'm just to damn lazy to apply snort sam patches
+and in addtion wanted to be able to drop attacker y for x number of seconds from a preproc like sfportscan. 
+
+STICKYDROP OPTIONS:
+
+max_entries (int)
+    Maximum amount of attacker entries allowed to be stored in the splaytree, yeah I know all the cool kids
+    are using hash tables these days. I'll get there someday......
+
+log (optional log file name)
+    Victor would yell at me in Dutch if I didn't add this in. It does what it say's logs packets dropped by our preproc.
+
+example:
+preprocessor stickydrop: max_entries 3000,log
+
+STICKYDROP-TIMEOUTS:
+
+sigh...... someday I will write real parsing code I promise.
+
+clamav (int)
+    Time in the number of seconds you want to block the source of a AV alert generated from the clamav preproc.
+
+portscan2 (int)
+    Time in the number of seconds you want to block a portscanner generated from the portscan2 preproc.
+
+sfportscan (int)
+    Time in the number of seconds you want to block a portscanner generated from the sfportscan preproc.
+
+example:
+preprocessor stickydrop-timeouts: clamav 3000, portscan2 10000, sfportscan 100000
+
+STICKYDROP-IGNOREHOSTS:
+
+List of networks not to add to our block tree ever, you probably want to add your HOME_NET networks here as not to DoS yourself.
+
+example:
+preprocessor stickydrop-ignorehosts: 192.168.1.0/24 
+
+STICKYDROP KEYWORD:
+
+On to the rule language stuff, this keyword relies on the stickydrop preprocessor. 
+
+sticky-drop:(block time in seconds,direction)
+
+so lets say we have a drop rule
+
+drop tcp $EXTERNAL_NET any -> $HTTP_SERVERS $HTTP_PORTS (msg:"WEB-IIS CodeRed v2 root.exe access"; flow:to_server,established; uricontent:"/ro
+ot.exe"; nocase; reference:url,www.cert.org/advisories/CA-2001-19.html; classtype:web-application-attack; sid:1256; rev:8;)
+
+and lets say that we want to drop all packets with our attackers source ip for the next 10 minutes. Can you see why it is important to add ourHOME_NET to stickydrop-ignorehosts?
+
+drop tcp $EXTERNAL_NET any -> $HTTP_SERVERS $HTTP_PORTS (msg:"WEB-IIS CodeRed v2 root.exe access"; flow:to_server,established; uricontent:"/ro
+ot.exe"; nocase; sticky-drop: 600,src; reference:url,www.cert.org/advisories/CA-2001-19.html; classtype:web-application-attack; sid:1256; rev:8;)
+
+BAIT-AND-SWITCH:
+
+Hmmm this started out as a neat parlor trick hopefully it will be useful to someone as I wrote it in about two day's. Basically we use iptables PREROUTING/POSTROUTING chains and corresponding SNAT/DNAT rules to simulate full NAT and trick our attacker into thinking he is hacking away at one box when really he is attacking another.
+
+BAIT-AND-SWITCH OPTIONS:
+
+max_entries (int)
+    Maximum amount of attacker entries allowed to be stored in the splaytree, yeah I know all the cool kids
+    are using hash tables these days. I'll get there someday......
+
+log (optional log file name)
+     It does what it say's logs packets rerouted by our preproc and has crappy logging for reroute additions.
+
+insert_before(no args)
+     Tells bait-and-switch to add the reroute rules before all previously existing rules, i.e. it adds a "I" rule, rather than a "A" rule.
+
+BAIT-AND-SWITCH-IGNOREHOSTS:
+
+List of networks not to add to our reroute tree ever, you probably want to add your HOME_NET networks here as not to DoS yourself.
+
+example:
+preprocessor bait-and-switch-ignorehosts: 192.168.1.0/24
+
+BAIT-AND-SWITCH KEYWORD:
+
+On to the rule language stuff, this keyword relies on the bait-and-switch preprocessor.
+
+bait-and-switch:(reroute time in seconds,direction,honeypotip)
+
+so lets say we have a drop rule
+
+drop tcp $EXTERNAL_NET any -> $HTTP_SERVERS $HTTP_PORTS (msg:"WEB-IIS repost.asp access"; flow:to_server,established; uricontent:"/scripts/repost.asp"; nocase; reference:nessus,10372; classtype:web-application-activity; sid:1076; rev:6;)
+
+Now let's say that if this rule fires, we want to reroute all traffic from the attacker for the next 10 minutes to a honeypot(192.168.1.1) we would add the following rule.
+
+drop tcp $EXTERNAL_NET any -> $HTTP_SERVERS $HTTP_PORTS (msg:"WEB-IIS repost.asp access"; flow:to_server,established; uricontent:"/scripts/repost.asp"; nocase; bait-and-switch:600,src,192.168.1.1; reference:nessus,10372; classtype:web-application-activity; sid:1076; rev:6;)
+
+We end up with DNAT/SNAT tables looking something like this
+
+Chain PREROUTING (policy ACCEPT)
+target     prot opt source               destination
+DNAT       all  --  attacker.ip          attacked.ip    to:honeypot.ip
+
+Chain POSTROUTING (policy ACCEPT)
+target     prot opt source               destination
+SNAT       all  --  honeypot.ip          attacker.ip    to:attacked.ip
+
+ALSO...
+
+Additionally, Jed's content replace code allows you to modify packets
+before they leave the network.  For example:
+
+alert tcp any any <> any 80 (msg: "tcp replace"; content:"GET"; replace:"BET";)
+alert udp any any <> any 53 (msg: "udp replace"; \
+    content: "yahoo"; replace: "xxxxx";)
+
+these rules will comb tcp port 80 traffic looking for GET, and udp port 53 
+traffic looking for yahoo.  Once they are found, they are replaced with BET 
+and xxxxx, respectively.  The only catch is that the replace must be the same 
+length as the content.
+
+RULE APPLICATION ORDER:
+
+The current Rule application order: 
+	->activation->dynamic->drop->sdrop->reject->alert->pass->log
+
+This will ensure that a drop rule has precedence over an alert or log rule.
+Also, the -o flag now changes the rule application order to:
+	->activation->dynamic->pass->drop->sdrop->reject->alert->log
+
+INSTALL
+
+./configure --enable-inline
+make
+make install
+
+DROP RULES
+
+Mike Clark <mike@honeynet.org> has taken the time and energy to go through
+the snort ruleset to identify and consolidate rules that would meet the
+drop criteria.  These rules are located in the rules directory in 
+drop.rules, and should be considered "alpha".  There is also a sample 
+drop.conf file located in the etc directory of the snort_inline.tgz.  The 
+latest and greatest set of drop rules can always be found at:
+
+http://www.honeynet.org/papers/honeynet/tools/
+
+Additionally, we have included a convert.sh script in the etc/ directory
+that will convert all alert rules to drop rules.  All you have to do is 
+copy it to the location of your snort rules and run it.  It will convert
+all alert rules to drop rules; change HOME_NET to HONEYNET; and reverse
+the flow of the rules.  Why reverse the flow of the rules?  Because the
+original purpose of snort_inline is to control a compromised network;
+therefore, we need to drop packets leaving the Honeynet not entering it.
+
+HONEYNET SNORT_INLINE TOOLKIT
+
+This is a statically compiled snort_inline binary put together by the
+Honeynet Project for the Linux Operating System.  It comes with a set
+of drop.rules, the snort_inline binary, a snort-inline rotation shell
+script, and a good README.  It can be found at:
+
+http://www.honeynet.org/papers/honeynet/tools/
+
+RUN
+
+First, you need to ensure that the ip_queue module is loaded.  Then,
+you need to send traffic to snort_inline using the QUEUE target.  For
+example,
+
+iptables -A OUTPUT -p tcp --dport 80 -j QUEUE
+
+sends all tcp traffic leaving the firewall going to port 80 to the QUEUE
+target.  This is what sends the packet from kernel space to user space 
+(snort_inline).  A quick way to get all outbound traffic going to the
+QUEUE is to use the rc.firewall script created and maintained by the 
+Honeynet Project (http://www.honeynet.org/papers/honeynet/tools/)
+This script is well documented and allows you to direct packets
+to snort_inline by simply changing the QUEUE variable to yes.
+
+Finally, start snort_inline.
+
+snort_inline -QDc ../etc/drop.conf -l /var/log/snort
+
+-Q => get packets from iptables.
+-D => run in daemon mode.  pid in /var/run/snort_inline.pid
+-c => read the following configuration file.
+-l => log to the following directory.
+
+Ideally, snort_inline will be run using only its own drop.rules.  If
+you want to use Snort for just alerting, a separate process should be
+running with its own ruleset.
+
+TROUBLESHOOTING
+
+If you execute snort_inline, and you see something like this:
+
+Initializing Output Plugins!
+Reading from iptables
+Log directory = /var/log/snort
+Initializing Inline mode
+InlineInit: : Failed to send netlink message: Connection refused
+
+more than likely, the ip_queue module is not loaded or ip_queue 
+support is not compiled into your kernel.  Either recompile
+your kernel to support ip_queue, or load the module.
+
+The ip_queue module is loaded by executing:
+
+insmod ip_queue
+
+Also, if you want to ensure snort_inline is getting packets, you can 
+start it in the following manner:
+
+snort_inline -Qvc <configuration file>
+
+This will display the header of every packet that snort_inline sees. 

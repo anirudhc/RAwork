@@ -1,0 +1,9 @@
+How to create a kernel module
+http://www.paulkiddie.com/2009/10/creating-a-hello-world-kernel-module-in-linux/
+
+How to create a Netfilter module
+http://www.paulkiddie.com/2009/10/creating-a-simple-hello-world-netfilter-module/
+
+Roll your own firewall with NetFilter.
+http://www.linuxjournal.com/article/7184
+

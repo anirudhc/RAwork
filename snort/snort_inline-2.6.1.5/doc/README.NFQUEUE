@@ -1,0 +1,93 @@
+Sat Feb 18 11:18:30 MST 2006
+
+The "stuck packet" (which wasn't a fatal issue, in that snort_inline still
+worked even with packets stuck in the nfqueue) appears to be resolved by using
+the latest and greatest libnfnetlink and libnetfilter_queue from SVN at
+netfilter.org. The latest versions will (probably) become libnfnetlink-0.0.16
+and libnetfilter_queue-0.0.12 when they're released. Thanks, Harald!
+
+Thu Nov 17 07:54:39 MST 2005
+
+Updated the nfnetlink portion of the snort_inline patch to use the latest 
+versions of libnfnetlink and libnetlink_queue from
+
+  http://www.netfilter.org/
+
+Versions used/tested are:
+
+  http://www.netfilter.org/projects/libnfnetlink/files/libnfnetlink-0.0.13.tar.bz2
+
+and
+
+  http://www.netfilter.org/projects/libnetfilter_queue/files/libnetfilter_queue-0.0.11.tar.bz2
+
+Using these, along with a 2.6.14 kernel and iptables-1.3.4, is recommended,
+since they compile and install with less effort than older versions.
+
+Building snort_inline with netfilter_queues, using the snort_inline patch
+is now a little different:
+
+  1. patch
+
+  2. sh ./autojunk.sh
+
+  3. ./configure --enable-nfnetlink
+
+  4. make
+
+You'll still need libdnet, and the libraries above.
+
+
+Sun Oct 30 15:19:58 MST 2005
+
+This adulteration of snort allows it to use the new "nfnetlink_queue"
+netfilter (iptables) target available in 2.6.14 (recently renamed to
+netfilter_queue - see the www.netfilter.org website for details). 
+
+To build it, you need the userspace libnfnetlink_queue and
+libnfnetfilter libraries. (I used libnfnetlink-0.0.10.tar.bz2 and
+libnfnetlink_queue-0.0.10.tar.bz2; Harald Welte has newer versions
+available at svn.netfilter.org, but I believe that the names are
+changing).
+
+You'll also need the other stuff to build snort 2.4.3 in inline mode,
+including libnet (1.0.2a). Official snort_inline appears to be moving
+to Dug Song's libdnet.  Oh, and you'll need iptables-1.3.3, since
+that's the first version that understands the NFQUEUE target (for
+example):
+
+iptables -I FORWARD -j NFQUEUE --queue-num 42
+
+(equivalent ipqueue command would be "iptables -I FORWARD -j QUEUE").
+
+The version you can pick up off the front page of www.netfilter.org has
+a bug - you can't set --queue-num. Here's the patch for it:
+
+Index: extensions/libipt_NFQUEUE.c
+===================================================================
+--- extensions/libipt_NFQUEUE.c(revision 4210)
++++ extensions/libipt_NFQUEUE.c(working copy)
+@@ -59,6 +59,7 @@
+ exit_error(PARAMETER_PROBLEM, "NFQUEUE target: "
+    "Only use --queue-num ONCE!");
+ parse_num(optarg, tinfo);
++break;
+ default:
+ return 0;
+
+To configure snort:
+
+ CFLAGS="-DNFNETLINKQ" LDFLAGS="-lnfnetlink_queue -lnfnetlink" ./configure --enable-inline
+
+Should be able now to make, assuming the headers and libraries are in
+accessible places.
+
+A quick test run:
+
+src/snort_inline -H 42 -Qvy
+
+and you should be watching packets, assuming the iptables example
+above or equivalent, and that your machine is in the packet forwarding
+business, of course.
+
+DAR

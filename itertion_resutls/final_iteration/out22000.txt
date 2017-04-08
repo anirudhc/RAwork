@@ -1,0 +1,185 @@
+Device: eth0
+Number of packets: 60
+Filter expression: dst portrange 53000-53100
+   Src port: 53000
+   Dst port: 53000
+The time stamp of the packet is [141469]
+   Src port: 53000
+   Dst port: 53000
+The time stamp of the packet is [142183]
+   Src port: 53000
+   Dst port: 53001
+The time stamp of the packet is [154322]
+   Src port: 53001
+   Dst port: 53000
+The time stamp of the packet is [155085]
+   Src port: 53000
+   Dst port: 53002
+The time stamp of the packet is [167146]
+   Src port: 53002
+   Dst port: 53000
+The time stamp of the packet is [167903]
+   Src port: 53000
+   Dst port: 53003
+The time stamp of the packet is [180059]
+   Src port: 53003
+   Dst port: 53000
+The time stamp of the packet is [180770]
+   Src port: 53000
+   Dst port: 53004
+The time stamp of the packet is [192289]
+   Src port: 53004
+   Dst port: 53000
+The time stamp of the packet is [193057]
+   Src port: 53000
+   Dst port: 53005
+The time stamp of the packet is [205409]
+   Src port: 53005
+   Dst port: 53000
+The time stamp of the packet is [206129]
+   Src port: 53000
+   Dst port: 53006
+The time stamp of the packet is [220231]
+   Src port: 53006
+   Dst port: 53000
+The time stamp of the packet is [220943]
+   Src port: 53000
+   Dst port: 53007
+The time stamp of the packet is [232217]
+   Src port: 53007
+   Dst port: 53000
+The time stamp of the packet is [232965]
+   Src port: 53000
+   Dst port: 53008
+The time stamp of the packet is [243477]
+   Src port: 53008
+   Dst port: 53000
+The time stamp of the packet is [244226]
+   Src port: 53000
+   Dst port: 53009
+The time stamp of the packet is [256150]
+   Src port: 53009
+   Dst port: 53000
+The time stamp of the packet is [256903]
+   Src port: 53000
+   Dst port: 53010
+The time stamp of the packet is [268707]
+   Src port: 53010
+   Dst port: 53000
+The time stamp of the packet is [269422]
+   Src port: 53000
+   Dst port: 53011
+The time stamp of the packet is [280977]
+   Src port: 53011
+   Dst port: 53000
+The time stamp of the packet is [281691]
+   Src port: 53000
+   Dst port: 53012
+The time stamp of the packet is [293894]
+   Src port: 53012
+   Dst port: 53000
+The time stamp of the packet is [294647]
+   Src port: 53000
+   Dst port: 53013
+The time stamp of the packet is [306199]
+   Src port: 53013
+   Dst port: 53000
+The time stamp of the packet is [306916]
+   Src port: 53000
+   Dst port: 53014
+The time stamp of the packet is [318810]
+   Src port: 53014
+   Dst port: 53000
+The time stamp of the packet is [319563]
+   Src port: 53000
+   Dst port: 53015
+The time stamp of the packet is [330757]
+   Src port: 53015
+   Dst port: 53000
+The time stamp of the packet is [331505]
+   Src port: 53000
+   Dst port: 53016
+The time stamp of the packet is [344739]
+   Src port: 53016
+   Dst port: 53000
+The time stamp of the packet is [345492]
+   Src port: 53000
+   Dst port: 53017
+The time stamp of the packet is [358110]
+   Src port: 53017
+   Dst port: 53000
+The time stamp of the packet is [358822]
+   Src port: 53000
+   Dst port: 53018
+The time stamp of the packet is [370225]
+   Src port: 53018
+   Dst port: 53000
+The time stamp of the packet is [370942]
+   Src port: 53000
+   Dst port: 53019
+The time stamp of the packet is [382836]
+   Src port: 53019
+   Dst port: 53000
+The time stamp of the packet is [383551]
+   Src port: 53000
+   Dst port: 53020
+The time stamp of the packet is [395000]
+   Src port: 53020
+   Dst port: 53000
+The time stamp of the packet is [395710]
+   Src port: 53000
+   Dst port: 53021
+The time stamp of the packet is [408110]
+   Src port: 53021
+   Dst port: 53000
+The time stamp of the packet is [408816]
+   Src port: 53000
+   Dst port: 53022
+The time stamp of the packet is [420350]
+   Src port: 53022
+   Dst port: 53000
+The time stamp of the packet is [421103]
+   Src port: 53000
+   Dst port: 53023
+The time stamp of the packet is [434215]
+   Src port: 53023
+   Dst port: 53000
+The time stamp of the packet is [434931]
+   Src port: 53000
+   Dst port: 53024
+The time stamp of the packet is [447483]
+   Src port: 53024
+   Dst port: 53000
+The time stamp of the packet is [448236]
+   Src port: 53000
+   Dst port: 53025
+The time stamp of the packet is [460402]
+   Src port: 53025
+   Dst port: 53000
+The time stamp of the packet is [461150]
+   Src port: 53000
+   Dst port: 53026
+The time stamp of the packet is [474030]
+   Src port: 53026
+   Dst port: 53000
+The time stamp of the packet is [474779]
+   Src port: 53000
+   Dst port: 53027
+The time stamp of the packet is [485515]
+   Src port: 53027
+   Dst port: 53000
+The time stamp of the packet is [486268]
+   Src port: 53000
+   Dst port: 53028
+The time stamp of the packet is [493212]
+   Src port: 53028
+   Dst port: 53000
+The time stamp of the packet is [493929]
+   Src port: 53000
+   Dst port: 53029
+The time stamp of the packet is [498672]
+
+Capture complete.
+   Src port: 53029
+   Dst port: 53000
+The time stamp of the packet is [499391]

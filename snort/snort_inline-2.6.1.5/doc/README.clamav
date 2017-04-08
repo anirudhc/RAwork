@@ -1,0 +1,34 @@
++Known limitations
++=================
+- Please note that detection depends on ClamAV. If clam doesn't know a virus, it will not be detected. So keep your defs up-to-date.
+- Archives are not scanned, unless so small that it fits in one packet/uber-packet.
+- OLE2 virusses are not detected.
+- Attachments to email that are in some way encoded are not scanned.
+- As the clam guy's make there detection more specific it is harder for us to detect viri in on the fly packets.  Much work needs to be done to create application layer decoders - i.e. strip out actual packet payload and remove things such as http headers from packets.
+- turn on clamav by going into snort_inline.conf
+- If you don't configure an action and we detect a vrius, the virus is logged and detection is disabled for the rest of snort, and we flush the stream containing the packet in stream4. We have to do this due to logging restrictions and stream4 reassembly.
+
+preprocessor clamav
+
+This turns on the defaults for clamav which are to listen on ports 21 25 80 81 110 119 139 445 143
+uses the default database location of /var/lib/clamav unless another dbdir was specified at ./configure
+Alerts are written to alert logs no packets are rejected or dropped.
+
+options are 
+
+preprocessor clamav:  ports {portlist separated by " "}, {flow can be toclientonly or toserveronly or defaults to both} {action can be action-drop or  action-reset otherwise default to writing to alert file},{dbdir},{dbreload-time time in seconds to refresh the read of the AV signatures}, {tmpdir for fd mode}
+
+so 
+
+preprocessor clamav: ports all !25 !443 !22, action-reset
+
+
+will turn on clamav will listen for virus activity on all ports except 25 443 22 and send a reset and drop the packet if a virus is detected.
+
+
+preprocessor clamav: ports 139 445 21, toclientonly, action-drop, dbdir /var/lib2/clamav
+
+will turn on clamav, will listen for virus activity on ports 129 445 21 will only watch traffic that flows to the client, will drop the packet, sets the virus-sig database path to /var/lib2/clamav 
+
+to scan uberpackets from stream4 reassembly make sure that stream4 is initialized before ClamAV in your snort_inline.conf
+

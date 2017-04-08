@@ -1,0 +1,122 @@
+Creator: Nick Rogness <nick@rogness.net>
+Current Maintainer: Nick Rogness <nick@rogness.net>
+		    
+Snort-Inline on FreeBSD takes packets from ipfw divert sockets 
+instead of libpcap.  It then uses new rule types to help ipfw make 
+pass or drop decisions based on snort rules.  The best documentation
+for using this configuration is available:
+
+	http://freebsd.rogness.net/snort_inline
+
+Please visit the site BEFORE you send questions.  A lot of common
+questions are answered on that site.
+
+In summary, pretty much everything non-LINUX or non-Bridging specific 
+info in README.INLINE is applicable to snort_inline IPFW.
+
+NEW RULE TYPES AND WHAT THEY DO:
+
+drop - The drop rule type will tell iptables to drop the packet and log it 
+       via usual snort means.
+reject - This just kept around for existing rules, it is just an alias to rejectsrc.
+rejectsrc - The rejectsrc rule type will tell iptables to drop the packet, log it 
+         via usual snort means, and send a TCP reset if the protocol is 
+         TCP or an icmp port unreachable if the protocol is UDP to the src ip.
+rejectdst - The rejectdst rule type will tell iptables to drop the packet, log it
+         via usual snort means, and send a TCP reset if the protocol is
+         TCP or an icmp port unreachable if the protocol is UDP to the dst ip. It
+         should be noted that if you use layer2resets this will not work as we don't
+         get the dst mac from iptables. The packet will just be dropped.
+rejectboth - The rejectboth rule type will tell iptables to drop the packet, log it
+         via usual snort means, and send a TCP reset if the protocol is
+         TCP or an icmp port unreachable if the protocol is UDP to the src and dst ip.
+         If you are configured to use layer2resets the reset will only be sent to the
+         src ip.
+sdrop - The sdrop rule type will tell iptables to drop the packet.  Nothing
+        is logged.
+reinject - FreeBSD specific rule type that tells snort_inline to reinject the
+	   packet (after acception) into the ipfw list at a specific rule number.
+	   Used in conjunction with 'config ipfw_reinject_rule' configuration
+	   parameter listed below.
+
+CONFIG OPTIONS
+
+config ipfw_reinject_rule: $IPFW_RULE_NUMBER
+
+This config option only applies to packets that are matched 
+with 'reinject' snort rule action.  The supplied argument ($IPFW_RULE_NUMBER) 
+is the ipfw rule number AT WHICH rule processing continues in the ipfw processing 
+system after snort_inline has finished processing the packet.  Care must be 
+taken to avoid loops in ipfw.
+
+The following example tells snort_inline to reinject packets 
+(that match against snort 'reinject' rules) back into the ipfw 
+firewall AT rule number 5500:
+
+config ipfw_reinject_rule: 5500
+
+
+BAIT-AND-SWITCH:
+
+  Don't use BAIT-AND-SWITCH with FreeBSD.
+
+ALSO...
+
+Additionally, Jed's content replace code allows you to modify packets
+before they leave the network.  For example:
+
+alert tcp any any <> any 80 (msg: "tcp replace"; content:"GET"; replace:"BET";)
+alert udp any any <> any 53 (msg: "udp replace"; \
+    content: "yahoo"; replace: "xxxxx";)
+
+these rules will comb tcp port 80 traffic looking for GET, and udp port 53 
+traffic looking for yahoo.  Once they are found, they are replaced with BET 
+and xxxxx, respectively.  The only catch is that the replace must be the same 
+length as the content.
+
+RULE APPLICATION ORDER:
+
+The current Rule application order: 
+->activation->dynamic->pass->drop->sdrop->reject->rejectboth->rejectsrc->rejectdst->reinject->alert->log
+
+
+INSTALL
+
+Installation should be done via the FreeBSD ports system.  If not, I can not 
+confirm that anything will work correctly for you.  PLEASE install from ports:
+
+  # cd /usr/ports/security/snort_inline
+  # make install
+
+
+RUN
+
+First, you need to ensure that the IPDIVERT is on in the kernel.  
+
+Next, start snort_inline with appropriate options:
+
+# snort_inline -J 8000 [other_options]
+
+options include (among others):
+-J DIVERT_SOCKET => get packets from ipfw divert socket.
+-D => run in daemon mode.  pid in /var/run/snort_inline.pid
+-c => read the following configuration file.
+-l => log to the following directory.
+
+Then,  you need to send traffic to snort_inline using a Firewall rule.  For
+example,
+
+ipfw add 1000 divert 8000 ip from any to any 
+
+Sends all traffic to snort_inline on divert port 8000.  Other examples are
+available on the site listed above.  BE CAREFUL!!! or you will lock yourself
+out of the machine.  
+
+
+TROUBLESHOOTING
+
+
+1) Read the help site listed at top
+2) Additionally, you can send help questions to the snort_inline mailing list:
+
+    snort-inline-users@lists.sourceforge.net
